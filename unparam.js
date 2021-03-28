@@ -12,7 +12,7 @@ function unparam(s) {
   return type === 'string' ? base(s) : (type === 'object' ? s : {});
 }
 function base(s) {
-  const a = decodeURIComponent(half(s, '?', 1)[1]).split('&');
+  const a = half(s, '?', 1)[1].split('&');
   const l = a.length;
   const r = {};
   let w, t, k, v, _v, b, c, d, j, n, ni, q, i = 0; // eslint-disable-line
@@ -20,7 +20,8 @@ function base(s) {
   for (;i < l; i++) {
     k = (w = half(a[i], '='))[0];
     if (!k) continue;
-    isNumber(_v = decode(v = w[1].replace(expSpace, ' '))) || (v = _v);
+    isNumber(_v = decode(decodeURIComponent(v = w[1].replace(expSpace, ' '))))
+      || (v = _v);
     b = [];
     while (w = expBrackets.exec(k)) b.push(w[1]);
     if ((c = b.length) < 1) {

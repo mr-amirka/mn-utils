@@ -13,7 +13,7 @@ const jsonParse = require('../jsonParse');
 const defaultOptions = {
   method: 'GET',
   timeout: 200000,
-  responseType: 'json',
+  responseType: 'JSON',
   headers: {
     Accept: 'application/json, text/javascript, */*',
   },
@@ -28,7 +28,7 @@ function base(_options) {
   const body = _options.body;
   const method = _options.method;
   const timeout = _options.timeout;
-  const responseType = _options.responseType;
+  const responseType = (_options.responseType || '').toUpperCase();
   const _url = _options.href;
   const headers = _options.headers;
 
@@ -80,7 +80,7 @@ function base(_options) {
       return true;
     };
   }).then(
-      (response) => typeof response === 'string' && responseType === 'json'
+      (response) => typeof response === 'string' && responseType === 'JSON'
         ? jsonParse(response)
         : response,
   );
