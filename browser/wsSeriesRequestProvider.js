@@ -18,7 +18,7 @@ module.exports = (wsUrl) => {
   function connect() {
     socket = new WebSocket(wsUrl);
     socket.onopen = () => {
-      console.log('Connection is open');
+      // console.log('Connection is open');
       opened = 1;
       socketApply();
     };
@@ -27,7 +27,7 @@ module.exports = (wsUrl) => {
       const message = 'Connection is closed';
       const err = new Error(message);
       let item;
-      console.log(message);
+      // console.log(message);
       while (item = getRequest()) {
         item[1](err);
       }

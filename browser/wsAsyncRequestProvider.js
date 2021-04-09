@@ -3,16 +3,21 @@ const stackProvider = require('../stackProvider');
 const jsonParse = require('../jsonParse');
 const jsonStringify = require('../jsonStringify');
 const noop = require('../noop');
+const getTime = require('../time');
+
+function defaultOnReconnect() {
+  return CancelablePromise.delay(10000);
+}
 
 module.exports = (wsUrl, configs) => {
   configs = configs || {};
-  const onMessage = configs.onMessage || noop;
+  const _onMessage = configs.onMessage || noop;
+  const _onReconnect = configs.onReconnect || defaultOnReconnect;
   const [getRequest, addRequest] = stackProvider();
-  let messages = {}, opened, socket, lastId = 0; // eslint-disable-line
+  let messages = {}, opened, socket, reconnection, lastId = 0; // eslint-disable-line
   function socketApplyBase(item) {
-    if (!item || item[3]) return;
-    const id = ++lastId;
-    const args = item[2];
+    const args = item[2], id = item[3]; // eslint-disable-line
+    if (!args) return;
     messages[id] = item;
     socket.send(Buffer.from(jsonStringify({
       id,
@@ -20,68 +25,78 @@ module.exports = (wsUrl, configs) => {
       data: args[1],
     }), 'utf-8'));
   }
-  function errorApply(err) {
-    console.error(err);
-    let k, v, msgs = messages; // eslint-disable-line
+  function onReconnectFinally(err) {
+    reconnection = 0;
+    let id, msgs = messages; // eslint-disable-line
     messages = {};
-    for (k in msgs) { // eslint-disable-line
-      v = msgs[k];
-      v && v[1](err);
+    if (err) {
+      for (id in msgs) msgs[id][1](err); // eslint-disable-line
+      return;
     }
+    connect();
+    for (id in msgs) addRequest(msgs[id]); // eslint-disable-line
+  }
+  function onError(err) {
+    console.error(err);
+    opened = socket = 0;
+    reconnection = 1;
+    _onReconnect(err).finally(onReconnectFinally);
+  }
+  function onOpen() {
+    console.log('Connection is open');
+    opened = 1;
+    let item;
+    while (item = getRequest()) socketApplyBase(item);
+  }
+  function onMessage(e) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const response = jsonParse(reader.result);
+        if (_onMessage(response) === false) return;
+        const id = response.id;
+        const item = messages[id];
+        if (item) {
+          delete messages[id];
+          item[0](response);
+        }
+      } catch (ex) {
+        console.error(ex);
+      }
+    };
+    reader.readAsText(e.data);
   }
   function connect() {
     socket = new WebSocket(wsUrl);
-    socket.onopen = () => {
-      console.log('Connection is open');
-      opened = 1;
-      let item;
-      while (item = getRequest()) {
-        socketApplyBase(item);
-      }
-    };
-    socket.onclose = (e) => {
-      opened = socket = 0;
-      const err = new Error('Connection is closed');
-      let item;
-      while (item = getRequest()) {
-        item[1](err);
-      }
-      errorApply(err);
-    };
-    socket.onmessage = (e) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const response = jsonParse(reader.result);
-          if (onMessage(response) === false) return;
-          const id = response.id;
-          const item = messages[id];
-          if (item) {
-            delete messages[id];
-            item[0](response);
-          }
-        } catch (ex) {
-          errorApply(ex);
-        }
-      };
-      reader.readAsText(e.data);
-    };
-    socket.onerror = () => {
-      errorApply(new Error('Browser cannot connect to server'));
-    };
+    socket.onopen = onOpen;
+    socket.onclose = socket.onerror = onError;
+    socket.onmessage = onMessage;
   }
 
-  return (method, data) => {
+  function request(method, data) {
     return new CancelablePromise((resolve, reject) => {
       let item = [
-        resolve, reject,
-        [method, data], 0,
+        resolve,
+        reject,
+        [method, data],
+        '' + (++lastId) + '_' + getTime(),
       ];
-      opened ? socketApplyBase(item) : addRequest(item);
-      socket || connect();
+      reconnection ? addRequest(item) : (
+        opened ? socketApplyBase(item) : addRequest(item),
+        socket || connect()
+      );
       return () => {
-        item && (item[3] = 1, item = 0);
+        item && (item[2] = 0, item = 0);
       };
     });
+  }
+
+  request.close = () => {
+    socket && (
+      socket.close(),
+      opened = socket = 0
+    );
   };
+
+  return request;
 };
