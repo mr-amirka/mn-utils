@@ -3,18 +3,27 @@ const stackProvider = require('../stackProvider');
 const jsonParse = require('../jsonParse');
 const jsonStringify = require('../jsonStringify');
 const noop = require('../noop');
-const getTime = require('../time');
+
+let _lastId = 0;
+
+function defaultGenerateIdempotencyKey() {
+  return ++_lastId;
+}
 
 function defaultOnReconnect() {
   return CancelablePromise.delay(10000);
 }
 
+
 module.exports = (wsUrl, configs) => {
   configs = configs || {};
   const _onMessage = configs.onMessage || noop;
+  const _onError = configs.onError || noop;
   const _onReconnect = configs.onReconnect || defaultOnReconnect;
+  const _generateIdempotencyKey = configs.generateIdempotencyKey
+    || defaultGenerateIdempotencyKey;
   const [getRequest, addRequest] = stackProvider();
-  let messages = {}, opened, socket, reconnection, lastId = 0; // eslint-disable-line
+  let messages = {}, opened, socket, reconnection; // eslint-disable-line
   function socketApplyBase(item) {
     const args = item[2], id = item[3]; // eslint-disable-line
     if (!args) return;
@@ -37,13 +46,14 @@ module.exports = (wsUrl, configs) => {
     for (id in msgs) addRequest(msgs[id]); // eslint-disable-line
   }
   function onError(err) {
-    console.error(err);
+    // console.error(err);
     opened = socket = 0;
     reconnection = 1;
+    _onError(err);
     _onReconnect(err).finally(onReconnectFinally);
   }
   function onOpen() {
-    console.log('Connection is open');
+    // console.log('Connection is open');
     opened = 1;
     let item;
     while (item = getRequest()) socketApplyBase(item);
@@ -61,7 +71,8 @@ module.exports = (wsUrl, configs) => {
           item[0](response);
         }
       } catch (ex) {
-        console.error(ex);
+        _onError(ex);
+        // console.error(ex);
       }
     };
     reader.readAsText(e.data);
@@ -79,7 +90,7 @@ module.exports = (wsUrl, configs) => {
         resolve,
         reject,
         [method, data],
-        '' + (++lastId) + '_' + getTime(),
+        _generateIdempotencyKey(), // '' + (++lastId) + '_' + getTime(),
       ];
       reconnection ? addRequest(item) : (
         opened ? socketApplyBase(item) : addRequest(item),
