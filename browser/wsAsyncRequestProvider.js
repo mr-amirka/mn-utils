@@ -20,6 +20,7 @@ module.exports = (wsUrl, configs) => {
   const _onMessage = configs.onMessage || noop;
   const _onError = configs.onError || noop;
   const _onReconnect = configs.onReconnect || defaultOnReconnect;
+  const _onSuccessConnect = configs.onSuccessConnect || noop;
   const _generateIdempotencyKey = configs.generateIdempotencyKey
     || defaultGenerateIdempotencyKey;
   const [getRequest, addRequest] = stackProvider();
@@ -46,15 +47,17 @@ module.exports = (wsUrl, configs) => {
     for (id in msgs) addRequest(msgs[id]); // eslint-disable-line
   }
   function onError(err) {
-    // console.error(err);
+    _onError(err);
+    if (reconnection) return;
+    socket && socket.close(1000, 'Connection closed');
     opened = socket = 0;
     reconnection = 1;
-    _onError(err);
     _onReconnect(err).finally(onReconnectFinally);
   }
   function onOpen() {
     // console.log('Connection is open');
     opened = 1;
+    _onSuccessConnect();
     let item;
     while (item = getRequest()) socketApplyBase(item);
   }
