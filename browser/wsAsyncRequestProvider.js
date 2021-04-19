@@ -46,10 +46,13 @@ module.exports = (wsUrl, configs) => {
     connect();
     for (id in msgs) addRequest(msgs[id]); // eslint-disable-line
   }
+  function close() {
+    socket.close(1000, 'Connection closed');
+  }
   function onError(err) {
     _onError(err);
     if (reconnection) return;
-    socket && socket.close(1000, 'Connection closed');
+    socket && close();
     opened = socket = 0;
     reconnection = 1;
     _onReconnect(err).finally(onReconnectFinally);
@@ -107,7 +110,7 @@ module.exports = (wsUrl, configs) => {
 
   request.close = () => {
     socket && (
-      socket.close(),
+      close(),
       opened = socket = 0
     );
   };
