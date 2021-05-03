@@ -1,9 +1,10 @@
-const iterateeNormalize = require('./iterateeNormalize');
 const isArray = require('./isArray');
+const isFunction = require('./isFunction');
+const getterProvider = require('./get').getter;
 
 module.exports = (collection, iteratee, dst) => {
   if (!collection) return dst || {};
-  iteratee = iterateeNormalize(iteratee);
+  isFunction(iteratee) || (iteratee = getterProvider(iteratee));
   let hasArray = isArray(dst), k = 0, l; // eslint-disable-line
   if (hasArray || isArray(collection)) {
     l = collection && collection.length || 0;

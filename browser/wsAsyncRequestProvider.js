@@ -24,7 +24,7 @@ module.exports = (wsUrl, configs) => {
   const _generateIdempotencyKey = configs.generateIdempotencyKey
     || defaultGenerateIdempotencyKey;
   const [getRequest, addRequest] = stackProvider();
-  let messages = {}, opened, socket, reconnection; // eslint-disable-line
+  let messages = {}, opened, socket, reconnection, closed; // eslint-disable-line
   function socketApplyBase(item) {
     const args = item[2], id = item[3]; // eslint-disable-line
     if (!args) return;
@@ -43,10 +43,12 @@ module.exports = (wsUrl, configs) => {
       for (id in msgs) msgs[id][1](err); // eslint-disable-line
       return;
     }
+    if (closed) return;
     connect();
     for (id in msgs) addRequest(msgs[id]); // eslint-disable-line
   }
   function close() {
+    closed = 1;
     socket.close(1000, 'Connection closed');
   }
   function onError(err) {
@@ -55,6 +57,7 @@ module.exports = (wsUrl, configs) => {
     socket && close();
     opened = socket = 0;
     reconnection = 1;
+    if (closed) return onReconnectFinally(err);
     _onReconnect(err).finally(onReconnectFinally);
   }
   function onOpen() {
@@ -92,6 +95,9 @@ module.exports = (wsUrl, configs) => {
 
   function request(method, data) {
     return new CancelablePromise((resolve, reject) => {
+      if (closed) {
+        return reject(new Error('Connection is closed'));
+      }
       let item = [
         resolve,
         reject,
