@@ -5,6 +5,7 @@ const eachApply = require('./eachApply');
 const executeTry = require('./executeTry');
 const destroyProvider = require('./destroyProvider');
 const isObject = require('./isObject');
+const isFunction = require('./isFunction');
 const isPromise = require('./isPromise');
 const isArray = require('./isArray');
 const forEach = require('./forEach');
@@ -58,7 +59,7 @@ module.exports = function(ctx) {
       let __cancel = !done && executor ? deferApply(() => {
         try {
           const _cancel = executor(_resolve, _reject);
-          if (typeof _cancel === 'function') __cancel = _cancel;
+          isFunction(_cancel) && (__cancel = _cancel);
         } catch (ex) {
           _reject(ex);
         }

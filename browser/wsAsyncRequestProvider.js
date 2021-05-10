@@ -35,12 +35,12 @@ module.exports = (wsUrl, configs) => {
       data: args[1],
     }), 'utf-8'));
   }
-  function onReconnectFinally(err) {
+  function onReconnectFinally(error) {
     reconnection = 0;
     let id, msgs = messages; // eslint-disable-line
     messages = {};
-    if (err) {
-      for (id in msgs) msgs[id][1](err); // eslint-disable-line
+    if (error) {
+      for (id in msgs) msgs[id][1](error); // eslint-disable-line
       return;
     }
     if (closed) return;
@@ -48,17 +48,16 @@ module.exports = (wsUrl, configs) => {
     for (id in msgs) addRequest(msgs[id]); // eslint-disable-line
   }
   function close() {
-    closed = 1;
     socket.close(1000, 'Connection closed');
   }
-  function onError(err) {
-    _onError(err);
+  function onError(error) {
+    _onError(error);
     if (reconnection) return;
     socket && close();
     opened = socket = 0;
     reconnection = 1;
-    if (closed) return onReconnectFinally(err);
-    _onReconnect(err).finally(onReconnectFinally);
+    if (closed) return onReconnectFinally(error);
+    _onReconnect(error).finally(onReconnectFinally);
   }
   function onOpen() {
     // console.log('Connection is open');
@@ -116,6 +115,7 @@ module.exports = (wsUrl, configs) => {
 
   request.close = () => {
     socket && (
+      closed = 1,
       close(),
       opened = socket = 0
     );
