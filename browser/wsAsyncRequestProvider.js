@@ -3,17 +3,16 @@ const stackProvider = require('../stackProvider');
 const jsonParse = require('../jsonParse');
 const jsonStringify = require('../jsonStringify');
 const noop = require('../noop');
+const isEmpty = require('../isEmpty');
 
 let _lastId = 0;
 
 function defaultGenerateIdempotencyKey() {
   return ++_lastId;
 }
-
 function defaultOnReconnect() {
   return CancelablePromise.delay(10000);
 }
-
 
 module.exports = (wsUrl, configs) => {
   configs = configs || {};
@@ -24,7 +23,7 @@ module.exports = (wsUrl, configs) => {
   const _generateIdempotencyKey = configs.generateIdempotencyKey
     || defaultGenerateIdempotencyKey;
   const [getRequest, addRequest] = stackProvider();
-  let messages = {}, opened, socket, reconnection, closed; // eslint-disable-line
+  let messages = {}, opened, socket, reconnection, closed, lazyError; // eslint-disable-line
   function socketApplyBase(item) {
     const args = item[2], id = item[3]; // eslint-disable-line
     if (!args) return;
@@ -50,14 +49,27 @@ module.exports = (wsUrl, configs) => {
   function close() {
     socket.close(1000, 'Connection closed');
   }
-  function onError(error) {
-    _onError(error);
-    if (reconnection) return;
+  function errorAction(error) {
     socket && close();
     opened = socket = 0;
     reconnection = 1;
-    if (closed) return onReconnectFinally(error);
-    _onReconnect(error).finally(onReconnectFinally);
+    closed
+      ? onReconnectFinally(error)
+      : _onReconnect(error).finally(onReconnectFinally);
+  }
+  function onError(error) {
+    _onError(error);
+    if (reconnection || lazyError) return;
+    let item = getRequest();
+    if (item) {
+      addRequest(item);
+    } else {
+      if (isEmpty(messages)) {
+        lazyError = error;
+        return;
+      }
+    }
+    errorAction(error);
   }
   function onOpen() {
     // console.log('Connection is open');
@@ -97,6 +109,9 @@ module.exports = (wsUrl, configs) => {
       if (closed) {
         return reject(new Error('Connection is closed'));
       }
+
+      lazyError && (errorAction(lazyError), lazyError = null);
+
       let item = [
         resolve,
         reject,
