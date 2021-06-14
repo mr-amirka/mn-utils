@@ -12,7 +12,7 @@ module.exports = {
     compress: true,
     open: true,
     port: 9000,
-    openPage: 'index.html',
+    openPage: 'client.html',
   },
   mode:
     // 'production',
@@ -21,10 +21,11 @@ module.exports = {
     extensions: ['.js', '.jsx'],
   },
   entry: {
-    app: './src/app.jsx',
+    host: './src/host.js',
+    client: './src/client.js',
   },
   output: {
-    filename: '[name].[contenthash].js',
+    filename: '[name].js',
     path: __dirname + '/dist',
     publicPath: '/',
   },
@@ -115,7 +116,8 @@ module.exports = {
         './dist/mn.css',
       ],
       template: [
-        './src/index.html',
+        './src/host.html',
+        './src/client.html',
       ],
       presets: [
         require('minimalist-notation/presets/styles'),
@@ -126,10 +128,16 @@ module.exports = {
       ],
     }),
     new HtmlWebpackPlugin({
-      inject: 'head',
-      template: './src/index.html',
-      filename: 'index.html',
-      chunks: ['app'],
+      inject: 'body',
+      template: './src/host.html',
+      filename: 'host.html',
+      chunks: [],
+    }),
+    new HtmlWebpackPlugin({
+      inject: 'body',
+      template: './src/client.html',
+      filename: 'client.html',
+      chunks: [],
     }),
   ],
 };

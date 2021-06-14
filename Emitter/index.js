@@ -5,6 +5,7 @@ const reduce = require('../reduce');
 const isCollection = require('../isCollection');
 const isObjectLike = require('../isObjectLike');
 const isPromise = require('../isPromise');
+const isEmitter = require('../isEmitter');
 const isFunction = require('../isFunction');
 const addOf = require('../addOf');
 const removeOf = require('../removeOf');
@@ -23,11 +24,15 @@ const getter = get.getter;
 const setBase = set.base;
 const getBase = get.base;
 
-
 const EMITTER_COMBINE_DEFAULT_DEPTH = 10;
 
+function emitNoop() {
+  // eslint-disable-next-line
+  console.warn('Emitter warning: this emitter is child, this method "emit" does not work.');
+}
 function iterateeWarning(instance, key) {
-  instance === undefined && console.warn('WARNING: ' + key + ' is undefined');
+  instance === undefined
+    && console.warn('Emitter warning: ' + key + ' is undefined');
 }
 
 function combine(emitters) {
@@ -177,9 +182,7 @@ function subscribeProvider(watchers, watcher, onDestroy) {
     );
   };
 }
-function isEmitter(v) {
-  return v && isFunction(v.on) && isFunction(v.getValue);
-}
+
 combine.some = (emitters, _value) => {
   const ons = map(emitters, 'on');
   return new Emitter({
@@ -194,7 +197,7 @@ Emitter.provider = (init, value) => new Emitter(init, value);
 Emitter.isEmitter = isEmitter;
 Emitter.prototype = {
   _cancel: noop,
-  emit: noop,
+  emit: emitNoop,
   on: () => noop,
   getValue: noop,
   /*
@@ -299,7 +302,7 @@ Emitter.prototype = {
         emitter._cancel = asyncable(value, (value) => {
           emit(mapIn(value, getValue));
         });
-      } : emit) : noop,
+      } : emit) : emitNoop,
       getValue: getValueOut,
       on: mapOut ? ((watcher) => {
         _value = getValueOut();

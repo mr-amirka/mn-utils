@@ -1,24 +1,28 @@
 const CancelablePromise = require('../CancelablePromise');
+const Emitter = require('../Emitter');
 const slice = require('../slice');
 const isArray = require('../isArray');
 const isPromise = require('../isPromise');
+const isEmitter = require('../isEmitter');
 const isDate = require('../isDate');
+const isRegExp = require('../isRegExp');
+const regexpParse = require('./regexpParse');
 const noop = require('../noop');
 const map = require('../map');
 const uniqIdProvider = require('../uniqIdProvider');
 const __get = require('../get');
 
+
 const RPC_RESULT_HAS_ERROR = 0;
 const RPC_RESULT_DATA = 1;
 const RPC_RESULT_ERROR = 2;
 
-const RPC_TYPE_SCALAR = 0;
-const RPC_TYPE_FUNCTION = 1;
-const RPC_TYPE_OBJECT = 2;
-const RPC_TYPE_TIME = 3;
-const RPC_TYPE_PROMISE = 4; // eslint-disable-line
-const RPC_TYPE_EMITTER = 5; // eslint-disable-line
-const RPC_TYPE_REGEXP = 6; // eslint-disable-line
+const RPC_TYPE_FUNCTION = 0;
+const RPC_TYPE_OBJECT = 1;
+const RPC_TYPE_TIME = 2;
+const RPC_TYPE_REGEXP = 3; // eslint-disable-line
+const RPC_TYPE_EMITTER = 4; // eslint-disable-line
+const RPC_TYPE_PROMISE = 5; // eslint-disable-line
 
 const RPC_MSG_INIT = 0;
 const RPC_MSG_DONE = 1;
@@ -144,11 +148,24 @@ function rpcProvider(env, init, emit, on) {
     const promise = promises[taskId];
     if (promise) return promise;
     const handle = handlers[response[0]];
-    handle && handle(taskId, rpcDecode(options[1], getFn));
+    handle && rpcDecode(options[1], getFn)
+        .then((v) => handle(taskId, v));
   });
 
   env && emit([RPC_MSG_INIT, [getTaskId(), rpcEncode([env], fns, getFnId())]]);
   return deal;
+}
+function adaptEmitter(input$) {
+  const {
+    on,
+  } = input$;
+  const output$ = map(input$);
+  output$.on = (v) => {
+    return new CancelablePromise(() => {
+      return on(v);
+    });
+  };
+  return output$;
 }
 function rpcEncode(src, scope, name) {
   function withFn(src, scope, name, prefix) {
@@ -160,6 +177,8 @@ function rpcEncode(src, scope, name) {
     }
     if (type === 'object') {
       if (isDate(src)) return [RPC_TYPE_TIME, src.toISOString()];
+      if (isRegExp(src)) return [RPC_TYPE_REGEXP, src.toString()];
+      if (isEmitter(src)) src = adaptEmitter(src);
       prefix += name + '.';
       scope = scope[name] = {};
       let k, dst, length; // eslint-disable-line
@@ -184,9 +203,16 @@ function rpcEncode(src, scope, name) {
           : (
             type === 'object'
               ? (
-                isDate(src)
-                  ? [RPC_TYPE_TIME, src.toISOString()]
-                  : [RPC_TYPE_OBJECT, map(src, base)]
+                isRegExp(src)
+                  ? [RPC_TYPE_REGEXP, src.toString()]
+                  : (
+                    isDate(src)
+                      ? [RPC_TYPE_TIME, src.toISOString()]
+                      : [
+                        RPC_TYPE_OBJECT,
+                        map(isEmitter(src) ? adaptEmitter(src) : src, base),
+                      ]
+                  )
               )
               : src
           )
@@ -196,21 +222,35 @@ function rpcEncode(src, scope, name) {
   return scope ? withFn(src, scope, name, '') : base(src);
 }
 function rpcDecode(value, getFn) {
+  const promies = [];
   getFn = getFn || noop;
-  function unpack(v, t) {
-    return isArray(v)
-      ? (
-        (t = v[0]) === RPC_TYPE_FUNCTION
-          ? getFn(v[1])
-          : (
-            t === RPC_TYPE_TIME
-              ? new Date(v[1])
-              : map(v[1], unpack)
-          )
-      )
-      : v;
+  function unpack(v) {
+    if (!isArray(v)) return v;
+    let type = v[0], value = v[1], matchs; // eslint-disable-line
+    if (type === RPC_TYPE_FUNCTION) return getFn(value);
+    if (type === RPC_TYPE_TIME) return new Date(value);
+    if (type === RPC_TYPE_REGEXP) {
+      matchs = regexpParse(value);
+      return new RegExp(matchs[1], matchs[2]);
+    }
+
+    value = map(value, unpack);
+
+    if (isEmitter(value)) {
+      const emitter$ = new Emitter();
+      const {
+        emit,
+      } = emitter$;
+      value.on(emit);
+      promies.push(value.getValue().then(emit));
+      return emitter$.map();
+    }
+
+    return value;
   }
-  return unpack(value);
+  const output = unpack(value);
+  return CancelablePromise.all(promies)
+      .then(() => output);
 }
 
 function normalizePromise(data) {
@@ -242,7 +282,6 @@ module.exports = {
   RPC_RESULT_DATA,
   RPC_RESULT_ERROR,
 
-  RPC_TYPE_SCALAR,
   RPC_TYPE_FUNCTION,
   RPC_TYPE_TIME,
   RPC_TYPE_PROMISE,

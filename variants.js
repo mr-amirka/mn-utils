@@ -4,8 +4,7 @@ const escapedSplitProvider = require('./escapedSplitProvider');
 const joinArrays = require('./joinArrays');
 const push = require('./push');
 const pushArray = require('./pushArray');
-const joinProvider = require('mn-utils/joinProvider');
-const joinEmpty = joinProvider('');
+const joinOnly = require('./joinOnly');
 
 
 // Экранирование служебных символов
@@ -16,9 +15,9 @@ function variants(exp) {
   return map(base(exp), unslash);
 }
 function build(childs) {
-  const length = childs.length;
-  const output = [];
-  let parts, child, end, pi, pl, i = 0, next, prev = ['']; // eslint-disable-line
+  // eslint-disable-next-line
+  let length = childs.length, output = [], parts, child, end, pi, pl, i = 0,
+    next, prev = [''];
   for (; i < length; i++) {
     child = childs[i];
     parts = __split(child[0]);
@@ -36,10 +35,8 @@ function build(childs) {
   return pushArray(output, prev);
 }
 function base(exp) {
-  const levels = {};
-  const childs = levels[0] = [];
-  let depth = 0;
-  let parts = [];
+  // eslint-disable-next-line
+  let levels = {}, childs = levels[0] = [], depth = 0, parts = [];
   exp.replace(regexpScope, (haystack, _prefix, scope) => {
     if (_prefix) {
       push(parts, _prefix);
@@ -49,18 +46,18 @@ function base(exp) {
     if (scope == '(') {
       push(
           levels[depth] || (levels[depth] = []),
-          last = [joinEmpty(parts), 0],
+          last = [joinOnly(parts), 0],
       );
       depth++;
       levels[depth] = last[1] = [];
     } else {
-      push(levels[depth], [joinEmpty(parts), []]);
+      push(levels[depth], [joinOnly(parts), []]);
       if (--depth < 0) depth = 0;
     }
     parts = [];
     return '';
   });
-  parts.length && push(levels[depth], [joinEmpty(parts), []]);
+  parts.length && push(levels[depth], [joinOnly(parts), []]);
   return build(childs);
 }
 

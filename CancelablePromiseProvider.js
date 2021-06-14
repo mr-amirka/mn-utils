@@ -31,11 +31,16 @@ module.exports = function(ctx) {
     }
     function normalizeWrap(onResolve, onReject) {
       return (subject) => {
-        return deferApply(() => {
-          if (!isPromise(subject)) return onResolve(subject);
-          const next = subject.then(onResolve, onReject);
-          innerCancel = next && next.cancel || cancelNoop;
+        const cancel = deferApply(() => {
+          isPromise(subject)
+            ? (innerCancel
+                = subject.then(onResolve, onReject).cancel || cancelNoop)
+            : onResolve(subject);
         });
+        return () => {
+          cancel();
+          innerCancel();
+        };
       };
     }
     function resolve(_subject) {
@@ -56,10 +61,15 @@ module.exports = function(ctx) {
     const _resolve = self.resolve = normalizeWrap(resolve, reject);
     const _reject = self.reject = normalizeWrap(reject, reject);
     const init = subscribleInit(() => {
+      function setCancel(_cancel) {
+        isFunction(_cancel) && (__cancel = _cancel);
+      }
       let __cancel = !done && executor ? deferApply(() => {
         try {
           const _cancel = executor(_resolve, _reject);
-          isFunction(_cancel) && (__cancel = _cancel);
+          isPromise(_cancel)
+            ? (__cancel = _cancel.then(setCancel).cancel || __cancel)
+            : setCancel(_cancel);
         } catch (ex) {
           _reject(ex);
         }

@@ -1,23 +1,20 @@
-const isRegExp = require('./isRegExp');
-const escapeRegExp = require('./escapeRegExp');
+const regexpNormalizeText = require('./regexpNormalizeText');
 const unslash = require('./unslash');
 const push = require('./push');
 const map = require('./map');
 const joinOnly = require('./joinOnly');
 
-module.exports = (separator) => {
-  separator = isRegExp(separator)
-    ? (separator = separator.toString()).substr(1, separator.length - 2)
-    : escapeRegExp(separator);
-  const regexp = new RegExp('(\\\\.)|(' + separator + ')', 'g');
+module.exports = (separator, escaped) => {
+  separator = regexpNormalizeText(separator);
+  escaped = escaped ? regexpNormalizeText(escaped) : '\\\\.';
+  const regexp = new RegExp('(' + escaped + ')|(' + separator + ')', 'g');
   function escapedSplit(input, dstSeparators) {
     return map(base(input, dstSeparators), unslash);
   }
   function base(input, dstSeparators) {
-    let lastOffset = 0, v = []; // eslint-disable-line
-    const output = [];
+    let lastOffset = 0, v = [], output = []; // eslint-disable-line
     input.replace(regexp, function(all, escaped, separator) {
-      const args = arguments, offset = args[args.length - 2]; // eslint-disable-line
+      let args = arguments, offset = args[args.length - 2]; // eslint-disable-line
       push(v, input.substr(lastOffset, offset - lastOffset));
       escaped
         ? push(v, escaped)

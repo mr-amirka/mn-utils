@@ -1,13 +1,11 @@
-const isRegExp = require('./isRegExp');
-const escapeRegExp = require('./escapeRegExp');
-const map = require('./map');
+const regexpNormalizeText = require('./regexpNormalizeText');
 const unslash = require('./unslash');
+const map = require('./map');
 
-module.exports = (separator) => {
-  separator = isRegExp(separator)
-    ? (separator = separator.toString()).substr(1, separator.length - 2)
-    : escapeRegExp(separator);
-  const regexp = new RegExp('(\\\\.)|(' + separator + '(.*)$)', 'g');
+module.exports = (separator, escaped) => {
+  separator = regexpNormalizeText(separator);
+  escaped = escaped ? regexpNormalizeText(escaped) : '\\\\.';
+  const regexp = new RegExp('(' + escaped + ')|(' + separator + '(.*)$)', 'g');
   function instance(input) {
     return map(base(input), unslash);
   }

@@ -6,9 +6,10 @@ const once = require('../once');
 const invoke = require('../invoke');
 const extend = require('../extend');
 const merge = require('../merge');
-const Deal = require('../CancelablePromise');
+const CancelablePromise = require('../CancelablePromise');
 const urlExtend = require('../urlExtend');
 const jsonParse = require('../jsonParse');
+const isString = require('../isString');
 
 const defaultOptions = {
   method: 'GET',
@@ -32,7 +33,7 @@ function base(_options) {
   const _url = _options.href;
   const headers = _options.headers;
 
-  return new Deal((resolve, reject) => {
+  return new CancelablePromise((resolve, reject) => {
     let stop = 0; // eslint-disable-line
     const XHR1 = window.XMLHttpRequest, XHR2 = window.ActiveXObject; // eslint-disable-line
     const XHR = XHR1 || XHR2; // eslint-disable-line
@@ -80,7 +81,7 @@ function base(_options) {
       return true;
     };
   }).then(
-      (response) => typeof response === 'string' && responseType === 'json'
+      (response) => isString(response) && responseType === 'json'
         ? jsonParse(response)
         : response,
   );

@@ -5,5 +5,5 @@
  */
 import {ICssProps} from "./global";
 
-declare function cssPropertiesParse(input: string, output?: ICssProps): ICssProps;
-export = cssPropertiesParse;
+declare function cssPropertiesParseSimple(input: string, output?: ICssProps): ICssProps;
+export = cssPropertiesParseSimple;
