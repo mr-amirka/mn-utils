@@ -23,13 +23,13 @@ function build(childs) {
     parts = __split(child[0]);
     pl = parts.length;
     end = pl - 1;
-    joinArrays(next = [], [parts[end]], build(child[1]));
+    joinArrays([parts[end]], build(child[1]), '', next = []);
     if (end) {
-      joinArrays(output, prev, [parts[0]]);
+      joinArrays(prev, [parts[0]], '', output);
       prev = next;
       for (pi = 1; pi < end; pi++) push(output, parts[pi]);
     } else {
-      prev = joinArrays([], prev, next);
+      prev = joinArrays(prev, next);
     }
   }
   return pushArray(output, prev);
