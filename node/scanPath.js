@@ -3,6 +3,7 @@ const Path = require('path');
 const finallyAll = require('../finallyAll');
 
 const regexpPath = /^\.?\.?\/.*/;
+const regexpNormalize = /\\/gim;
 
 module.exports = ({path, each, callback, exclude}) => {
   finallyAll((inc, dec) => {
@@ -10,20 +11,20 @@ module.exports = ({path, each, callback, exclude}) => {
     const _exclude = exclude || noop;
     function base(path) {
       inc();
-      if (_exclude(path)) return dec();
+      path = path.replace(regexpNormalize, '/');
       regexpPath.test(path) || (path = './' + path);
+      function iteratee(name) {
+        base(Path.join(path, name));
+      }
       fs.stat(path, (err, stat) => {
         if (!stat) return dec();
         if (stat.isDirectory()) {
-          function iteratee(name) {
-            base(Path.join(path, name));
-          }
           fs.readdir(path, (err, list) => {
             list && list.forEach(iteratee);
             dec();
           });
         } else {
-          _each('found', path);
+          _exclude(path) || _each('found', path);
           dec();
         }
       });
