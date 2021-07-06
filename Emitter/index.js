@@ -1,4 +1,5 @@
 const noop = require('../noop');
+const some = require('../some');
 const extend = require('../extend');
 const merge = require('../merge');
 const reduce = require('../reduce');
@@ -193,6 +194,7 @@ combine.some = (emitters, _value) => {
   });
 };
 Emitter.combine = combine;
+Emitter.some = (values) => combine(values).map(some);
 Emitter.provider = (init, value) => new Emitter(init, value);
 Emitter.isEmitter = isEmitter;
 Emitter.prototype = {
