@@ -1,0 +1,29 @@
+{
+  "name": "std",
+  "version": "0.0.0",
+  "description": "utils",
+  "keywords": [
+    "utils"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "docs": "typedoc --options ./typedoc-config.js",
+    "lint": "eslint **/*.js*",
+    "test": "jest . --notify --config=./jest.config.js",
+    "validate": "npm run eslint && npm run test"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.7.0",
+    "@typescript-eslint/parser": "^2.7.0",
+    "eslint": "^6.6.0",
+    "eslint-config-google": "^0.14.0",
+    "jest": "^24.9.0"
+  },
+  "peerDependencies": {
+    "path-to-regexp": "^2.2.1",
+    "zlib": "^1.0.5",
+    "debug": "^3.1.0",
+    "react": "^16.12.0",
+    "uuid": "^8.3.2"
+  }
+}

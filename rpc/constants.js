@@ -1,0 +1,8 @@
+
+module.exports = {
+  RPC_TYPE_FUNCTION: 0,
+  RPC_TYPE_OBJECT: 1,
+  RPC_TYPE_ARRAY: 2,
+  RPC_TYPE_TIME: 3,
+  RPC_TYPE_REGEXP: 4,
+};
