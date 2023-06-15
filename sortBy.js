@@ -4,11 +4,12 @@
  */
 
 const iterateeNormalize = require('./iterateeNormalize');
-const __sort = [].sort;
+const sort = require('./sort');
+
 
 module.exports = (src, iteratee) => {
   const _iteratee = iterateeNormalize(iteratee);
-  return __sort.call(src, (a, b) => {
+  return sort(src, (a, b) => {
     a = _iteratee(a);
     b = _iteratee(b);
     return a < b ? -1 : (

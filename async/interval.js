@@ -1,7 +1,6 @@
 const delay = require('../delay');
-const noop = require('../noop');
 const isPromise = require('../isPromise');
-
+const cancelableThen = require('../cancelableThen');
 
 module.exports = (fn, _delay, args, self) => {
   self = self || null;
@@ -11,7 +10,7 @@ module.exports = (fn, _delay, args, self) => {
   function next(promise) {
     try {
       isPromise(promise = fn.apply(self, args))
-        ? (_cancel = promise.then(nextLazy, nextLazy).cancel || noop)
+        ? (_cancel = cancelableThen(promise, nextLazy, nextLazy))
         : nextLazy();
     } catch (ex) {
       console.error(ex);

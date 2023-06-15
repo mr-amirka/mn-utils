@@ -1,9 +1,35 @@
 {
-  "name": "std",
-  "version": "0.0.0",
+  "name": "mn-utils",
+  "version": "0.0.251",
   "description": "utils",
   "keywords": [
-    "utils"
+    "utils",
+    "Cancelable",
+    "Promise",
+    "CancelablePromise",
+    "Observable",
+    "RPC",
+    "Thread",
+    "Thread RPC",
+    "Iframe RPC",
+    "WebSocket",
+    "WebSocket RPC",
+    "HTTP RPC",
+    "request",
+    "jsonp",
+    "storage",
+    "param",
+    "unparam",
+    "cookie",
+    "localStorage",
+    "paramStorage",
+    "cookieStorage",
+    "dynamic module",
+    "router",
+    "detection",
+    "browser detection",
+    "url parser",
+    "framework"
   ],
   "license": "MIT",
   "scripts": {
@@ -18,12 +44,5 @@
     "eslint": "^6.6.0",
     "eslint-config-google": "^0.14.0",
     "jest": "^24.9.0"
-  },
-  "peerDependencies": {
-    "path-to-regexp": "^2.2.1",
-    "zlib": "^1.0.5",
-    "debug": "^3.1.0",
-    "react": "^16.12.0",
-    "uuid": "^8.3.2"
   }
 }
