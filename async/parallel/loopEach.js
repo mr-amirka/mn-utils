@@ -1,7 +1,6 @@
 const CancelablePromise = require('../../CancelablePromise');
 const forEachParallel = require('./forEach');
 
-
 module.exports = (input, iteratee, ctx, taskLimit) => {
   return new CancelablePromise(() => {
     let _promise;

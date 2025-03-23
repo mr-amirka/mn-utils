@@ -7,9 +7,7 @@
 
 import {
   Observable,
-  cancel,
 } from "../global";
-
 
 
 declare function emitterProvider<T>(

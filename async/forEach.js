@@ -1,6 +1,5 @@
 const loopAsync = require('./loop');
 
-
 module.exports = (items, fn, ctx) => {
   const length = items && items.length || 0;
   let index = 0;
